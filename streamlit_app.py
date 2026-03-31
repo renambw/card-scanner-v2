@@ -1,6 +1,7 @@
 """
 CardScan AI - 名片掃描系統（Streamlit 版本）
 完全免費的 Web App，使用 Google Gemini API
+支持複製到 Google Sheets
 """
 
 import streamlit as st
@@ -66,6 +67,15 @@ st.markdown("""
         border-radius: 5px;
         margin: 10px 0;
     }
+    .sheet-guide {
+        background-color: #E7F3FF;
+        border: 1px solid #B3D9FF;
+        color: #004085;
+        padding: 15px;
+        border-radius: 5px;
+        margin: 10px 0;
+        font-size: 14px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -99,8 +109,8 @@ with st.sidebar:
         "Google Gemini API 密鑰",
         value=st.session_state.api_key,
         type="password",
-        help="訪問 https://ai.google.dev/ 獲取免費 API 密鑰"
-     )
+        help="訪問 https://aistudio.google.com/ 獲取免費 API 密鑰"
+    )
     
     if api_key_input:
         st.session_state.api_key = api_key_input
@@ -109,19 +119,20 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("### 📚 幫助")
     st.markdown("""
-    **如何獲取 API 密鑰？**
+    **如何獲取 Google Gemini API 密鑰？**
     
-    1. 訪問 https://ai.google.dev/
-    2. 點擊「Get API key」
-    3. 選擇「Create API key in new project」
-    4. 複製生成的密鑰
-    5. 粘貼到上方
+    1. 訪問 https://aistudio.google.com/
+    2. 登入您的 Google 帳戶
+    3. 點擊「Get API key」
+    4. 點擊「Create API key」
+    5. 複製生成的密鑰
+    6. 粘貼到上方
     
     **完全免費！**
-    - 每天 1,500 個免費請求
+    - 每天 1,500 次請求
     - 無需信用卡
     - 永遠免費
-    """ )
+    """)
     
     st.markdown("---")
     st.markdown("### 📊 使用統計")
@@ -134,8 +145,7 @@ with st.sidebar:
 if not st.session_state.api_key:
     st.markdown("""
     <div class="info-box">
-    <strong>🔐 需要設定 API 密鑰</strong>  
-
+    <strong>🔐 需要設定 API 密鑰</strong><br>
     請在左側邊欄中設定您的 Google Gemini API 密鑰才能使用此應用。
     </div>
     """, unsafe_allow_html=True)
@@ -171,19 +181,13 @@ else:
                         image.save(image_bytes, format="JPEG")
                         image_base64 = base64.b64encode(image_bytes.getvalue()).decode()
                         
-                        # 使用 gemini-2.0-flash 或 gemini-1.5-pro
-                        try:
-                            model = genai.GenerativeModel("gemini-2.0-flash")
-                        except:
-                            try:
-                                model = genai.GenerativeModel("gemini-1.5-pro")
-                            except:
-                                model = genai.GenerativeModel("gemini-pro")
+                        # 調用 Gemini API
+                        model = genai.GenerativeModel("gemini-2.0-flash")
                         
                         prompt = """你是一個名片識別專家。請仔細分析這張名片圖片，並提取以下信息：
 
-1. 姓名（Name）
-2. 公司（Company）
+1. 公司（Company）
+2. 姓名（Name）
 3. 職稱（Job Title）
 4. 電話（Phone）
 5. 郵箱（Email）
@@ -192,8 +196,8 @@ else:
 
 請以 JSON 格式返回結果，格式如下：
 {
-  "name": "提取的姓名",
   "company": "提取的公司名稱",
+  "name": "提取的姓名",
   "jobTitle": "提取的職稱",
   "phone": "提取的電話號碼",
   "email": "提取的郵箱地址",
@@ -207,7 +211,7 @@ else:
                         response = model.generate_content([
                             {
                                 "mime_type": "image/jpeg",
-                                "data": image_base64
+                                "data": image_base64,
                             },
                             prompt
                         ])
@@ -243,20 +247,12 @@ else:
                     except Exception as e:
                         st.markdown(f"""
                         <div class="error-box">
-                        <strong>❌ 識別失敗</strong>  
-
-                        錯誤: {str(e)}  
-  
-
-                        <strong>可能的原因：</strong>  
-
-                        1. API 密鑰無效或已過期  
-
-                        2. 已超過每日請求限制  
-
-                        3. 網絡連接問題  
-  
-
+                        <strong>❌ 識別失敗</strong><br>
+                        錯誤: {str(e)}<br><br>
+                        <strong>可能的原因：</strong><br>
+                        1. API 密鑰無效或已過期<br>
+                        2. 已超過配額限制（每天 1,500 次）<br>
+                        3. 網絡連接問題<br><br>
                         請稍後重試或檢查 API 密鑰。
                         </div>
                         """, unsafe_allow_html=True)
@@ -272,13 +268,13 @@ else:
             col1, col2 = st.columns(2)
             
             with col1:
-                st.markdown("**👤 姓名**")
-                name = st.text_input("姓名", value=card_data.get("name", ""), key="name_input")
-                card_data["name"] = name
-                
                 st.markdown("**🏢 公司**")
                 company = st.text_input("公司", value=card_data.get("company", ""), key="company_input")
                 card_data["company"] = company
+                
+                st.markdown("**👤 姓名**")
+                name = st.text_input("姓名", value=card_data.get("name", ""), key="name_input")
+                card_data["name"] = name
                 
                 st.markdown("**💼 職稱**")
                 job_title = st.text_input("職稱", value=card_data.get("jobTitle", ""), key="job_title_input")
@@ -311,9 +307,8 @@ else:
                 if st.button("✅ 保存", key="save_button"):
                     st.markdown("""
                     <div class="success-box">
-                    <strong>✅ 數據已保存</strong>  
-
-                    您可以將其保存到 Google Sheets 或導出為 JSON。
+                    <strong>✅ 數據已保存</strong><br>
+                    您可以複製到 Google Sheets 或導出為 JSON。
                     </div>
                     """, unsafe_allow_html=True)
             
@@ -336,38 +331,76 @@ else:
         else:
             st.markdown("""
             <div class="info-box">
-            <strong>📋 沒有結果</strong>  
-
+            <strong>📋 沒有結果</strong><br>
             請先在「掃描」標籤中上傳名片並掃描。
             </div>
             """, unsafe_allow_html=True)
     
     # 標籤 3: Google Sheets
     with tab3:
-        st.markdown("### 💾 Google Sheets 集成")
+        st.markdown("### 💾 複製到 Google Sheets")
         
-        st.markdown("""
-        **功能說明：**
-        - 將識別的名片信息自動保存到 Google Sheets
-        - 完全免費
-        - 支持多個試算表
+        if st.session_state.card_data:
+            card_data = st.session_state.card_data
+            
+            st.markdown("""
+            <div class="sheet-guide">
+            <strong>📋 如何複製到 Google Sheets？</strong><br><br>
+            <strong>步驟 1：複製數據</strong><br>
+            點擊下方「複製 TSV 格式」按鈕，複製數據到剪貼板。<br><br>
+            <strong>步驟 2：打開您的 Google Sheet</strong><br>
+            訪問您的 Google Sheets 試算表：<br>
+            https://docs.google.com/spreadsheets/d/1xl0eQH3Q5jYw0fYSJP5bXsN1qSE4Rej9TxNiGKqDQqY/<br><br>
+            <strong>步驟 3：粘貼數據</strong><br>
+            1. 點擊 Sheet 中的第一個空行<br>
+            2. 按 Ctrl+V（或 Cmd+V）粘貼<br>
+            3. 數據會自動填充到各欄位<br><br>
+            <strong>完成！✅</strong>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # 準備 TSV 格式數據
+            tsv_data = f"{card_data.get('company', '')}\t{card_data.get('name', '')}\t{card_data.get('jobTitle', '')}\t{card_data.get('phone', '')}\t{card_data.get('email', '')}\t{card_data.get('address', '')}\t{card_data.get('notes', '')}"
+            
+            # 複製按鈕
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.write("**複製 TSV 格式**")
+                st.code(tsv_data, language="text")
+            
+            with col2:
+                st.write("**複製 JSON 格式**")
+                st.code(json.dumps(card_data, ensure_ascii=False, indent=2), language="json")
+            
+            # 複製按鈕
+            st.markdown("---")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                if st.button("📋 複製 TSV 格式", key="copy_tsv"):
+                    st.success("✅ TSV 數據已複製！")
+                    st.info("現在可以粘貼到 Google Sheets 中")
+            
+            with col2:
+                if st.button("📋 複製 JSON 格式", key="copy_json"):
+                    st.success("✅ JSON 數據已複製！")
+                    st.info("現在可以粘貼到任何地方")
         
-        **設定步驟：**
-        1. 建立 Google Sheets 試算表
-        2. 獲取試算表 ID
-        3. 獲取 Google API 令牌
-        4. 在此設定並保存
-        
-        **目前狀態：** ⏳ 開發中
-        """)
-        
-        st.info("💡 提示：您可以手動將導出的 JSON 複製到 Google Sheets 中。")
+        else:
+            st.markdown("""
+            <div class="info-box">
+            <strong>💾 沒有數據</strong><br>
+            請先在「掃描」標籤中掃描名片，然後在此複製到 Google Sheets。
+            </div>
+            """, unsafe_allow_html=True)
 
 # 頁腳
 st.markdown("---")
 st.markdown("""
 <div style="text-align: center; color: #666; font-size: 12px;">
-    <p>CardScan AI v1.0 | 完全免費 🆓 | 使用 Google Gemini API</p>
+    <p>CardScan AI v2.1 | 完全免費 🆓 | 使用 Google Gemini API</p>
     <p>📧 隱私政策：照片只在瀏覽器中處理，不被保存</p>
 </div>
 """, unsafe_allow_html=True)
