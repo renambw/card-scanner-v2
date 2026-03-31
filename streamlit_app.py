@@ -173,7 +173,7 @@ else:
                         image_base64 = base64.b64encode(image_bytes.getvalue()).decode()
                         
                         # 調用 Gemini API
-                        model = genai.get_generative_model("gemini-1.5-flash")
+                        model = genai.GenerativeModel("gemini-1.5-flash")
                         
                         prompt = """你是一個名片識別專家。請仔細分析這張名片圖片，並提取以下信息：
 
