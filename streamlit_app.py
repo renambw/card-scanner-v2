@@ -80,7 +80,7 @@ if "image_data" not in st.session_state:
 
 # 標題
 st.title("📇 CardScan AI")
-st.markdown("### 智能名片掃描系統")
+st.markdown("### Rena的智能名片掃描系統")
 st.markdown("使用 AI 自動識別名片信息 | 完全免費 🆓")
 
 # 側邊欄設定
