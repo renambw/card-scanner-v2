@@ -71,7 +71,8 @@ st.markdown("""
 
 # 初始化 session state
 if "api_key" not in st.session_state:
-    st.session_state.api_key = ""
+    # 自動從 Streamlit Secrets 讀取 API 密鑰
+    st.session_state.api_key = st.secrets.get("GEMINI_API_KEY", "")
 if "card_data" not in st.session_state:
     st.session_state.card_data = None
 if "image_data" not in st.session_state:
