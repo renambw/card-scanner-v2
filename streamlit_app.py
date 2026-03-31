@@ -71,7 +71,6 @@ st.markdown("""
 
 # 初始化 session state
 if "api_key" not in st.session_state:
-    # 自動從 Streamlit Secrets 讀取 API 密鑰
     st.session_state.api_key = st.secrets.get("GEMINI_API_KEY", "")
 if "card_data" not in st.session_state:
     st.session_state.card_data = None
@@ -80,7 +79,7 @@ if "image_data" not in st.session_state:
 
 # 標題
 st.title("📇 CardScan AI")
-st.markdown("### Rena的智能名片掃描系統")
+st.markdown("### 智能名片掃描系統")
 st.markdown("使用 AI 自動識別名片信息 | 完全免費 🆓")
 
 # 側邊欄設定
@@ -172,8 +171,14 @@ else:
                         image.save(image_bytes, format="JPEG")
                         image_base64 = base64.b64encode(image_bytes.getvalue()).decode()
                         
-                        # 調用 Gemini API
-                        model = genai.GenerativeModel("gemini-pro-vision")
+                        # 使用 gemini-2.0-flash 或 gemini-1.5-pro
+                        try:
+                            model = genai.GenerativeModel("gemini-2.0-flash")
+                        except:
+                            try:
+                                model = genai.GenerativeModel("gemini-1.5-pro")
+                            except:
+                                model = genai.GenerativeModel("gemini-pro")
                         
                         prompt = """你是一個名片識別專家。請仔細分析這張名片圖片，並提取以下信息：
 
@@ -240,7 +245,19 @@ else:
                         <div class="error-box">
                         <strong>❌ 識別失敗</strong>  
 
-                        {str(e)}
+                        錯誤: {str(e)}  
+  
+
+                        <strong>可能的原因：</strong>  
+
+                        1. API 密鑰無效或已過期  
+
+                        2. 已超過每日請求限制  
+
+                        3. 網絡連接問題  
+  
+
+                        請稍後重試或檢查 API 密鑰。
                         </div>
                         """, unsafe_allow_html=True)
     
