@@ -179,10 +179,11 @@ else:
                         # 轉換為 Base64
                         image_bytes = io.BytesIO()
                         image.save(image_bytes, format="JPEG")
+                        image_bytes.seek(0)
                         image_base64 = base64.b64encode(image_bytes.getvalue()).decode()
                         
-                        # 調用 Gemini API
-                        model = genai.GenerativeModel("gemini-2.0-flash")
+                        # 調用 Gemini API - 使用最新的 API 格式
+                        model = genai.GenerativeModel("gemini-1.5-flash")
                         
                         prompt = """你是一個名片識別專家。請仔細分析這張名片圖片，並提取以下信息：
 
@@ -208,10 +209,16 @@ else:
 如果某些信息在名片上找不到，請使用空字符串 ""。
 請只返回 JSON，不要返回其他文本。"""
                         
-                        response = model.generate_content([
-                            genai.types.Part(mime_type="image/jpeg", data=image_base64),
-                            prompt
-                        ])
+                        # 使用正確的 API 格式
+                        response = model.generate_content(
+                            [
+                                prompt,
+                                {
+                                    "mime_type": "image/jpeg",
+                                    "data": image_base64
+                                }
+                            ]
+                        )
                         
                         # 解析響應
                         response_text = response.text.strip()
@@ -259,145 +266,132 @@ else:
         st.markdown("### 📋 識別結果")
         
         if st.session_state.card_data:
-            card_data = st.session_state.card_data
-            
-            # 顯示結果
             col1, col2 = st.columns(2)
             
             with col1:
-                st.markdown("**🏢 公司**")
-                company = st.text_input("公司", value=card_data.get("company", ""), key="company_input")
-                card_data["company"] = company
-                
-                st.markdown("**👤 姓名**")
-                name = st.text_input("姓名", value=card_data.get("name", ""), key="name_input")
-                card_data["name"] = name
-                
-                st.markdown("**💼 職稱**")
-                job_title = st.text_input("職稱", value=card_data.get("jobTitle", ""), key="job_title_input")
-                card_data["jobTitle"] = job_title
-            
-            with col2:
-                st.markdown("**📞 電話**")
-                phone = st.text_input("電話", value=card_data.get("phone", ""), key="phone_input")
-                card_data["phone"] = phone
-                
-                st.markdown("**📧 郵箱**")
-                email = st.text_input("郵箱", value=card_data.get("email", ""), key="email_input")
-                card_data["email"] = email
-                
-                st.markdown("**📍 地址**")
-                address = st.text_input("地址", value=card_data.get("address", ""), key="address_input")
-                card_data["address"] = address
-            
-            st.markdown("**📝 備註**")
-            notes = st.text_area("備註", value=card_data.get("notes", ""), key="notes_input", height=80)
-            card_data["notes"] = notes
-            
-            # 更新 session state
-            st.session_state.card_data = card_data
-            
-            # 操作按鈕
-            col1, col2, col3 = st.columns(3)
-            
-            with col1:
-                if st.button("✅ 保存", key="save_button"):
-                    st.markdown("""
-                    <div class="success-box">
-                    <strong>✅ 數據已保存</strong><br>
-                    您可以複製到 Google Sheets 或導出為 JSON。
-                    </div>
-                    """, unsafe_allow_html=True)
-            
-            with col2:
-                if st.button("🔄 重新掃描", key="rescan_button"):
-                    st.session_state.card_data = None
-                    st.session_state.image_data = None
-                    st.rerun()
-            
-            with col3:
-                # 導出為 JSON
-                json_str = json.dumps(card_data, ensure_ascii=False, indent=2)
-                st.download_button(
-                    label="📥 導出 JSON",
-                    data=json_str,
-                    file_name=f"card_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
-                    mime="application/json"
+                st.markdown("**公司**")
+                company = st.text_input(
+                    "Company",
+                    value=st.session_state.card_data.get("company", ""),
+                    label_visibility="collapsed"
                 )
-        
+                st.session_state.card_data["company"] = company
+                
+                st.markdown("**姓名**")
+                name = st.text_input(
+                    "Name",
+                    value=st.session_state.card_data.get("name", ""),
+                    label_visibility="collapsed"
+                )
+                st.session_state.card_data["name"] = name
+                
+                st.markdown("**職稱**")
+                job_title = st.text_input(
+                    "Job Title",
+                    value=st.session_state.card_data.get("jobTitle", ""),
+                    label_visibility="collapsed"
+                )
+                st.session_state.card_data["jobTitle"] = job_title
+                
+                st.markdown("**電話**")
+                phone = st.text_input(
+                    "Phone",
+                    value=st.session_state.card_data.get("phone", ""),
+                    label_visibility="collapsed"
+                )
+                st.session_state.card_data["phone"] = phone
+            
+            with col2:
+                st.markdown("**郵箱**")
+                email = st.text_input(
+                    "Email",
+                    value=st.session_state.card_data.get("email", ""),
+                    label_visibility="collapsed"
+                )
+                st.session_state.card_data["email"] = email
+                
+                st.markdown("**地址**")
+                address = st.text_input(
+                    "Address",
+                    value=st.session_state.card_data.get("address", ""),
+                    label_visibility="collapsed"
+                )
+                st.session_state.card_data["address"] = address
+                
+                st.markdown("**備註**")
+                notes = st.text_area(
+                    "Notes",
+                    value=st.session_state.card_data.get("notes", ""),
+                    label_visibility="collapsed",
+                    height=100
+                )
+                st.session_state.card_data["notes"] = notes
         else:
-            st.markdown("""
-            <div class="info-box">
-            <strong>📋 沒有結果</strong><br>
-            請先在「掃描」標籤中上傳名片並掃描。
-            </div>
-            """, unsafe_allow_html=True)
+            st.info("📸 請先在「掃描」標籤中上傳並掃描名片")
     
     # 標籤 3: Google Sheets
     with tab3:
         st.markdown("### 💾 複製到 Google Sheets")
         
         if st.session_state.card_data:
-            card_data = st.session_state.card_data
-            
             st.markdown("""
             <div class="sheet-guide">
-            <strong>📋 如何複製到 Google Sheets？</strong><br><br>
-            <strong>步驟 1：複製數據</strong><br>
-            點擊下方「複製 TSV 格式」按鈕，複製數據到剪貼板。<br><br>
-            <strong>步驟 2：打開您的 Google Sheet</strong><br>
-            訪問您的 Google Sheets 試算表：<br>
-            https://docs.google.com/spreadsheets/d/1xl0eQH3Q5jYw0fYSJP5bXsN1qSE4Rej9TxNiGKqDQqY/<br><br>
-            <strong>步驟 3：粘貼數據</strong><br>
-            1. 點擊 Sheet 中的第一個空行<br>
-            2. 按 Ctrl+V（或 Cmd+V）粘貼<br>
-            3. 數據會自動填充到各欄位<br><br>
-            <strong>完成！✅</strong>
+            <strong>📋 使用指南：</strong><br><br>
+            1️⃣ 選擇複製格式（TSV 或 JSON）<br>
+            2️⃣ 點擊「複製」按鈕<br>
+            3️⃣ 打開您的 Google Sheet<br>
+            4️⃣ 粘貼數據（Ctrl+V）<br>
+            5️⃣ ✅ 完成！
             </div>
             """, unsafe_allow_html=True)
             
-            # 準備 TSV 格式數據
-            tsv_data = f"{card_data.get('company', '')}\t{card_data.get('name', '')}\t{card_data.get('jobTitle', '')}\t{card_data.get('phone', '')}\t{card_data.get('email', '')}\t{card_data.get('address', '')}\t{card_data.get('notes', '')}"
+            # TSV 格式（制表符分隔）
+            st.markdown("**📊 TSV 格式（推薦）**")
+            tsv_data = "\t".join([
+                st.session_state.card_data.get("company", ""),
+                st.session_state.card_data.get("name", ""),
+                st.session_state.card_data.get("jobTitle", ""),
+                st.session_state.card_data.get("phone", ""),
+                st.session_state.card_data.get("email", ""),
+                st.session_state.card_data.get("address", ""),
+                st.session_state.card_data.get("notes", "")
+            ])
             
-            # 複製按鈕
+            st.text_area(
+                "TSV 格式數據",
+                value=tsv_data,
+                height=80,
+                label_visibility="collapsed"
+            )
+            
             col1, col2 = st.columns(2)
-            
             with col1:
-                st.write("**複製 TSV 格式**")
-                st.code(tsv_data, language="text")
+                if st.button("📋 複製 TSV", use_container_width=True):
+                    st.write("✅ 已複製！粘貼到 Google Sheet 即可")
+            
+            # JSON 格式
+            st.markdown("**📄 JSON 格式**")
+            json_data = json.dumps(st.session_state.card_data, ensure_ascii=False, indent=2)
+            
+            st.text_area(
+                "JSON 格式數據",
+                value=json_data,
+                height=150,
+                label_visibility="collapsed"
+            )
             
             with col2:
-                st.write("**複製 JSON 格式**")
-                st.code(json.dumps(card_data, ensure_ascii=False, indent=2), language="json")
+                if st.button("📋 複製 JSON", use_container_width=True):
+                    st.write("✅ 已複製！")
             
-            # 複製按鈕
-            st.markdown("---")
-            
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                if st.button("📋 複製 TSV 格式", key="copy_tsv"):
-                    st.success("✅ TSV 數據已複製！")
-                    st.info("現在可以粘貼到 Google Sheets 中")
-            
-            with col2:
-                if st.button("📋 複製 JSON 格式", key="copy_json"):
-                    st.success("✅ JSON 數據已複製！")
-                    st.info("現在可以粘貼到任何地方")
-        
+            # 導出為 JSON 文件
+            st.markdown("**💾 下載為文件**")
+            st.download_button(
+                label="⬇️ 下載 JSON 文件",
+                data=json_data,
+                file_name=f"card_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+                mime="application/json",
+                use_container_width=True
+            )
         else:
-            st.markdown("""
-            <div class="info-box">
-            <strong>💾 沒有數據</strong><br>
-            請先在「掃描」標籤中掃描名片，然後在此複製到 Google Sheets。
-            </div>
-            """, unsafe_allow_html=True)
-
-# 頁腳
-st.markdown("---")
-st.markdown("""
-<div style="text-align: center; color: #666; font-size: 12px;">
-    <p>CardScan AI v2.1 | 完全免費 🆓 | 使用 Google Gemini API</p>
-    <p>📧 隱私政策：照片只在瀏覽器中處理，不被保存</p>
-</div>
-""", unsafe_allow_html=True)
+            st.info("📸 請先在「掃描」標籤中上傳並掃描名片")
