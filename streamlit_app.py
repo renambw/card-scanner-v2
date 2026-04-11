@@ -209,10 +209,7 @@ else:
 請只返回 JSON，不要返回其他文本。"""
                         
                         response = model.generate_content([
-                            {
-                                "mime_type": "image/jpeg",
-                                "data": image_base64,
-                            },
+                            genai.types.Part(mime_type="image/jpeg", data=image_base64),
                             prompt
                         ])
                         
