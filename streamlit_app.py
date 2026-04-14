@@ -80,12 +80,13 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # 初始化 session state
-if "api_key" not in st.session_state:
-    st.session_state.api_key = ""
 if "card_data" not in st.session_state:
     st.session_state.card_data = None
 if "image_data" not in st.session_state:
     st.session_state.image_data = None
+
+# 獲取 API 密鑰（從 secrets 自動讀取）
+api_key = st.secrets.get("GEMINI_API_KEY", "")
 
 # 標題
 st.title("📇 CardScan AI")
@@ -96,42 +97,27 @@ st.markdown("使用 AI 自動識別名片信息 | 完全免費 🆓")
 with st.sidebar:
     st.header("⚙️ 設定")
     
-    st.markdown("### 🔑 API 密鑰設定")
+    st.markdown("### 🔑 API 密鑰狀態")
     
-    # 顯示當前狀態
-    if st.session_state.api_key:
-        st.success("✅ API 密鑰已設定")
+    if api_key:
+        st.success("✅ API 密鑰已自動設定")
+        st.markdown(f"**密鑰前 10 字符：** {api_key[:10]}...")
     else:
-        st.warning("⚠️ 請設定 API 密鑰")
-    
-    # API 密鑰輸入
-    api_key_input = st.text_input(
-        "Google Gemini API 密鑰",
-        value=st.session_state.api_key,
-        type="password",
-        help="訪問 https://aistudio.google.com/ 獲取免費 API 密鑰"
-    )
-    
-    if api_key_input:
-        st.session_state.api_key = api_key_input
+        st.error("❌ 未找到 API 密鑰")
     
     # 幫助信息
     st.markdown("---")
     st.markdown("### 📚 幫助")
     st.markdown("""
-    **如何獲取 Google Gemini API 密鑰？**
+    **Google Gemini API 配額：**
     
-    1. 訪問 https://aistudio.google.com/
-    2. 登入您的 Google 帳戶
-    3. 點擊「Get API key」
-    4. 點擊「Create API key」
-    5. 複製生成的密鑰
-    6. 粘貼到上方
-    
-    **完全免費！**
     - 每天 1,500 次請求
     - 無需信用卡
-    - 永遠免費
+    - 完全免費
+    
+    **配額重置時間：**
+    - 每天 UTC 午夜 00:00
+    - 香港時間：上午 08:00
     """)
     
     st.markdown("---")
@@ -142,16 +128,16 @@ with st.sidebar:
     """)
 
 # 主要內容
-if not st.session_state.api_key:
+if not api_key:
     st.markdown("""
-    <div class="info-box">
-    <strong>🔐 需要設定 API 密鑰</strong><br>
-    請在左側邊欄中設定您的 Google Gemini API 密鑰才能使用此應用。
+    <div class="error-box">
+    <strong>❌ API 密鑰未設定</strong><br>
+    請聯繫管理員設定 API 密鑰。
     </div>
     """, unsafe_allow_html=True)
 else:
     # 配置 Gemini API
-    genai.configure(api_key=st.session_state.api_key)
+    genai.configure(api_key=api_key)
     
     # 標籤頁
     tab1, tab2, tab3 = st.tabs(["📸 掃描", "📋 結果", "💾 Google Sheets"])
@@ -337,11 +323,10 @@ else:
             st.markdown("""
             <div class="sheet-guide">
             <strong>📋 使用指南：</strong><br><br>
-            1️⃣ 選擇複製格式（TSV 或 JSON）<br>
-            2️⃣ 複製下面的數據<br>
-            3️⃣ 打開您的 Google Sheet<br>
-            4️⃣ 粘貼數據（Ctrl+V）<br>
-            5️⃣ ✅ 完成！
+            1️⃣ 複製下面的數據（TSV 或 JSON）<br>
+            2️⃣ 打開您的 Google Sheet<br>
+            3️⃣ 粘貼數據（Ctrl+V）<br>
+            4️⃣ ✅ 完成！
             </div>
             """, unsafe_allow_html=True)
             
